@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Концерты - Concert Tickets</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <a href="index.html" class="logo">
+                    <i class="fas fa-guitar"></i> Concert Tickets
+                </a>
+                <nav>
+                    <ul>
+                        <li><a href="index.html">Главная</a></li>
+                        <li><a href="concerts.html" class="active">Концерты</a></li>
+                        <li><a href="#" id="userMenuLink">Войти</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="section">
+            <h1>Все концерты</h1>
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Поиск концертов..." class="form-control">
+                <button onclick="searchConcerts()" class="btn">Поиск</button>
+                <button onclick="loadConcerts()" class="btn">Сбросить</button>
+            </div>
+            
+            <div id="concertsList" class="concerts-grid">
+                <!-- Концерты будут загружены через JavaScript -->
+            </div>
+            
+            <div id="loading" style="text-align: center; padding: 2rem;">
+                <i class="fas fa-spinner fa-spin"></i> Загрузка концертов...
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Concert Tickets System</p>
+        </div>
+    </footer>
+
+    <script>
+        const API_BASE_URL = '/concert_system/api';
+        
+        // Загрузка концертов при открытии страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConcerts();
+            checkAuthStatus();
+        });
+        
+        async function loadConcerts() {
+            const concertsList = document.getElementById('concertsList');
+            const loading = document.getElementById('loading');
+            
+            concertsList.innerHTML = '';
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/concerts.php?action=get_all`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderConcerts(data.concerts);
+                } else {
+                    concertsList.innerHTML = '<p>Ошибка загрузки концертов</p>';
+                }
+            } catch (error) {
+                concertsList.innerHTML = '<p>Ошибка соединения с сервером</p>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function renderConcerts(concerts) {
+            const concertsList = document.getElementById('concertsList');
+            
+            if (concerts.length === 0) {
+                concertsList.innerHTML = '<p>Концерты не найдены</p>';
+                return;
+            }
+            
+            concertsList.innerHTML = concerts.map(concert => `
+                <div class="concert-card">
+                    <div class="concert-image">
+                        <i class="fas fa-music"></i>
+                    </div>
+                    <div class="concert-info">
+                        <h3>${concert.title}</h3>
+                        <p><strong>Артист:</strong> ${concert.artist_name}</p>
+                        <p><strong>Площадка:</strong> ${concert.venue_name}, ${concert.city}</p>
+                        <p><strong>Дата:</strong> ${new Date(concert.start_datetime).toLocaleDateString()}</p>
+                        <p><strong>Время:</strong> ${new Date(concert.start_datetime).toLocaleTimeString()}</p>
+                        <div class="concert-price">от ${concert.min_price || concert.base_price} руб.</div>
+                        <button onclick="viewConcert(${concert.concert_id})" class="btn">Подробнее</button>
+                        <button onclick="buyTicket(${concert.concert_id})" class="btn">Купить билет</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function searchConcerts() {
+            const searchInput = document.getElementById('searchInput').value;
+            const concertsList = document.getElementById('concertsList');
+            const loading = document.getElementById('loading');
+            
+            concertsList.innerHTML = '';
+            loading.style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/concerts.php?action=search&query=${encodeURIComponent(searchInput)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderConcerts(data.concerts);
+                }
+            } catch (error) {
+                concertsList.innerHTML = '<p>Ошибка поиска</p>';
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+        
+        function viewConcert(concertId) {
+            // В реальном приложении здесь была бы страница деталей концерта
+            alert(`Просмотр концерта ID: ${concertId}`);
+        }
+        
+        function buyTicket(concertId) {
+            // Проверяем авторизацию
+            const userData = localStorage.getItem('currentUser');
+            if (!userData) {
+                alert('Для покупки билетов необходимо войти в систему');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // В реальном приложении здесь была бы страница покупки билетов
+            alert(`Покупка билета на концерт ID: ${concertId}`);
+        }
+        
+        function checkAuthStatus() {
+            const userData = localStorage.getItem('currentUser');
+            const userMenuLink = document.getElementById('userMenuLink');
+            
+            if (userData) {
+                const user = JSON.parse(userData);
+                userMenuLink.innerHTML = `<i class="fas fa-user"></i> ${user.name}`;
+                userMenuLink.href = 'dashboard.html';
+            }
+        }
+    </script>
+</body>
+</html>
